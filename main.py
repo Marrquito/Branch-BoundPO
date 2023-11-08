@@ -115,8 +115,10 @@ def read_values_by_file(coefficienctsRestrictionVar, coefficientsRightSideRestri
     return qtdVars, qtdRestricts, coefficienctsObjectEquation
 
 if __name__ == "__main__":
-    print("Bem-vindy ao seu programa de Branch & Bound")
+    print("Bem-vindos ao seu programa de Branch & Bound")
     
     method = int(input("Voce gostaria de inserir os dados manualmente (1) ou via arquivo (2)? "))
+    
+    print("")
     
     main(method)

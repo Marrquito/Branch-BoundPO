@@ -1,64 +1,70 @@
-from mip import Model, xsum, BINARY, OptimizationStatus
+from mip import *
 
-# Solicita ao usuário o número de variáveis e restrições
-n, m = map(int, input("Número de variáveis e número de restrições (separados por espaço): ").split())
 
-# Inicializa listas para armazenar os coeficientes da função objetivo, coeficientes das restrições (A) e lados direitos das restrições (b)
-c = []
-A = []
-b = []
 
-# Solicita ao usuário os coeficientes da função objetivo
-print("Insira os coeficientes da função objetivo (separados por espaço):")
-c = list(map(float, input().split()))
+def main():
+    # listas para armazenar os coeficientes da função objetivo, coeficientes das restrições (coefficienctsRestrictionVar) e lados direitos das restrições (coefficientsRightSideRestriction)
+    coefficienctsObjectEquation         = []
+    coefficienctsRestrictionVar         = []
+    coefficientsRightSideRestriction    = []
+    
+    print("Bem-vindy ao seu programa de Branch & Bound")
+    qtdVars, qtdRestricts       = map(int, input("Número de variáveis e número de restrições (separados por espaço): ").split())   
+    coefficienctsObjectEquation = list(map(float, input("Insira os coeficientes da função objetivo (separados por espaço): ").split()))
+    
+    print(f"Insira os coeficientes das {qtdRestricts} restrições e os lados direitos (separados por espaço):")
+    for i in range(qtdRestricts):
+        coefficients_and_b = list(map(float, input(f"{i+1}: ").split()))
+        coefficienctsRestrictionVar.append(coefficients_and_b[:-1])
+        coefficientsRightSideRestriction.append(coefficients_and_b[-1])
 
-# Solicita ao usuário os coeficientes das restrições e lados direitos
-print(f"Insira os coeficientes das {m} restrições e os lados direitos (separados por espaço):")
-for i in range(m):
-    coefficients_and_b = list(map(float, input().split()))
-    A.append(coefficients_and_b[:-1])
-    b.append(coefficients_and_b[-1])
+    # Impressão dos dados de entrada
+    print("\nDados de entrada:\n")
+    print(f"Número de variáveis:                {qtdVars} e restrições: {qtdRestricts}")
+    print(f"Coeficientes da função objetivo:    {coefficienctsObjectEquation}")
+    print(f"Coeficientes das restrições:        {coefficienctsRestrictionVar}")
+    print(f"Lados direitos das restrições:      {coefficientsRightSideRestriction}")
+    print("\n")
+    
+    print("Iniciando procedimento de branch and bound...\n")
+    best_solution, best_vars = branch_and_bound(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)
+    
+    print("Melhor solução encontrada: ")
+    print("Valor da Função Objetivo:", best_solution)
+    print("Valores das variáveis:", best_vars)
 
-# Impressão dos dados de entrada
-print("Dados de entrada:")
-print("Número de variáveis e restrições:", n, m)
-print("Coeficientes da função objetivo:", c)
-print("Coeficientes das restrições (A):", A)
-print("Lados direitos das restrições (b):", b)
-
-# Função para criar um modelo MIP
-def create_model():
-    model = Model()
-
+def create_model(qtdVars: int, coefficienctsObjectEquation: list[int], coefficienctsRestrictionVar: list[int], coefficientsRightSideRestriction: list[int]):
+    model = Model(sense=MAXIMIZE, solver_name=CBC)
+    
     # Variáveis binárias
-    x = [model.add_var(var_type=BINARY) for _ in range(n)]
-
+    x = [model.add_var(var_type=BINARY) for _ in range(qtdVars)]
+    
     # Função objetivo
-    model.objective = xsum(c[i] * x[i] for i in range(n))
+    model.objective = xsum(coefficienctsObjectEquation[i] * x[i] for i in range(qtdVars))
 
     # Restrições
-    for j in range(len(b)):
-        model += xsum(A[j][i] * x[i] for i in range(n)) <= b[j]
+    for j in range(len(coefficientsRightSideRestriction)):
+        model += xsum(coefficienctsRestrictionVar[j][i] * x[i] for i in range(qtdVars)) <= coefficientsRightSideRestriction[j]
 
     return model
 
 # Algoritmo Branch and Bound
-def branch_and_bound():
-    best_solution = 0  # Melhor solução encontrada até agora
-    best_vars = None  # Variáveis correspondentes à melhor solução
-    queue = [create_model()]  # Fila de modelos a serem resolvidos
+def branch_and_bound(qtdVars: int, coefficienctsObjectEquation: list[int], coefficienctsRestrictionVar: list[int], coefficientsRightSideRestriction: list[int]):
+    best_solution   = 0  # Melhor solução encontrada até agora
+    best_vars       = None  # Variáveis correspondentes à melhor solução
+    queue           = [create_model(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)]  # Fila de modelos a serem resolvidos
 
     while queue:
         model = queue.pop(0)
         model.optimize()
 
         if model.num_solutions:
-            solution = model.vars
-            objective = model.objective_value
+            solution    = model.vars
+            objective   = model.objective_value
 
             if objective > best_solution:
-                best_solution = objective
-                best_vars = [int(round(var.x)) for var in solution]
+                best_solution   = objective
+                best_vars       = [int(round(var.x)) for var in solution]
 
             fractional_var = None
             for var in solution:
@@ -68,18 +74,15 @@ def branch_and_bound():
 
             if fractional_var:
                 # Ramificar em torno da variável fracionária
-                new_model1 = create_model()
+                new_model1  = create_model()
                 new_model1 += fractional_var <= 0
                 queue.append(new_model1)
 
-                new_model2 = create_model()
+                new_model2  = create_model()
                 new_model2 += fractional_var >= 1
                 queue.append(new_model2)
 
     return best_solution, best_vars
 
-best_solution, best_vars = branch_and_bound()
-
-print("Melhor solução encontrada:")
-print("Valor da Função Objetivo:", best_solution)
-print("Valores das variáveis:", best_vars)
+if __name__ == "__main__":
+    main()

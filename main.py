@@ -2,30 +2,32 @@ from mip import *
 
 
 
-def main():
-    # listas para armazenar os coeficientes da função objetivo, coeficientes das restrições (coefficienctsRestrictionVar) e lados direitos das restrições (coefficientsRightSideRestriction)
+def main(method: int): 
     coefficienctsObjectEquation         = []
     coefficienctsRestrictionVar         = []
     coefficientsRightSideRestriction    = []
+    qtdVars        : int                = 0
+    qtdRestricts   : int                = 0
     
-    print("Bem-vindy ao seu programa de Branch & Bound")
-    qtdVars, qtdRestricts       = map(int, input("Número de variáveis e número de restrições (separados por espaço): ").split())   
-    coefficienctsObjectEquation = list(map(float, input("Insira os coeficientes da função objetivo (separados por espaço): ").split()))
+    try:
     
-    print(f"Insira os coeficientes das {qtdRestricts} restrições e os lados direitos (separados por espaço):")
-    for i in range(qtdRestricts):
-        coefficients_and_b = list(map(float, input(f"{i+1}: ").split()))
-        coefficienctsRestrictionVar.append(coefficients_and_b[:-1])
-        coefficientsRightSideRestriction.append(coefficients_and_b[-1])
-
-    # Impressão dos dados de entrada
-    print("\nDados de entrada:\n")
+        match method:
+            case 1:
+                qtdVars, qtdRestricts, coefficienctsObjectEquation = read_values_by_console(coefficienctsRestrictionVar, coefficientsRightSideRestriction)
+                
+            case 2:
+                qtdVars, qtdRestricts, coefficienctsObjectEquation = read_values_by_file(coefficienctsRestrictionVar, coefficientsRightSideRestriction)
+    except Exception as e:
+        print(f"Error reading {e}")
+        return
+    
+    # print("\nDados de entrada:\n")
     print(f"Número de variáveis:                {qtdVars} e restrições: {qtdRestricts}")
     print(f"Coeficientes da função objetivo:    {coefficienctsObjectEquation}")
     print(f"Coeficientes das restrições:        {coefficienctsRestrictionVar}")
     print(f"Lados direitos das restrições:      {coefficientsRightSideRestriction}")
-    print("\n")
     
+    print("\n")
     print("Iniciando procedimento de branch and bound...\n")
     best_solution, best_vars = branch_and_bound(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)
     
@@ -84,5 +86,37 @@ def branch_and_bound(qtdVars: int, coefficienctsObjectEquation: list[int], coeff
 
     return best_solution, best_vars
 
+def read_values_by_console(coefficienctsRestrictionVar, coefficientsRightSideRestriction):
+    # listas para armazenar os coeficientes da função objetivo, coeficientes das restrições (coefficienctsRestrictionVar) e lados direitos das restrições (coefficientsRightSideRestriction)
+    
+    qtdVars, qtdRestricts       = map(int, input("Número de variáveis e número de restrições (separados por espaço): ").split())   
+    coefficienctsObjectEquation = list(map(float, input("Insira os coeficientes da função objetivo (separados por espaço): ").split()))
+
+    print(f"Insira os coeficientes das {qtdRestricts} restrições e os lados direitos (separados por espaço):")
+    for i in range(qtdRestricts):
+        coefficients_and_b = list(map(float, input(f"{i+1}: ").split()))
+        coefficienctsRestrictionVar.append(coefficients_and_b[:-1])
+        coefficientsRightSideRestriction.append(coefficients_and_b[-1])
+
+    return qtdVars, qtdRestricts, coefficienctsObjectEquation
+
+def read_values_by_file(coefficienctsRestrictionVar, coefficientsRightSideRestriction):
+    file_name = input("Digite o nome do arquivo a ser lido: ")
+    
+    with open(file_name, "r") as file:
+        qtdVars, qtdRestricts       = map(int, file.readline().split())
+        coefficienctsObjectEquation = list(map(float, file.readline().split()))
+        
+        for i in range(qtdRestricts):
+            coefficients_and_b = list(map(float, file.readline().split()))
+            coefficienctsRestrictionVar.append(coefficients_and_b[:-1])
+            coefficientsRightSideRestriction.append(coefficients_and_b[-1])
+    
+    return qtdVars, qtdRestricts, coefficienctsObjectEquation
+
 if __name__ == "__main__":
-    main()
+    print("Bem-vindy ao seu programa de Branch & Bound")
+    
+    method = int(input("Voce gostaria de inserir os dados manualmente (1) ou via arquivo (2)? "))
+    
+    main(method)

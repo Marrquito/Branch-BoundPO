@@ -1,6 +1,5 @@
-from mip import *
-
-
+from mip import Model, xsum, BINARY, CBC, MAXIMIZE
+import os
 
 def main(method: int): 
     coefficienctsObjectEquation         = []
@@ -17,8 +16,13 @@ def main(method: int):
                 
             case 2:
                 qtdVars, qtdRestricts, coefficienctsObjectEquation = read_values_by_file(coefficienctsRestrictionVar, coefficientsRightSideRestriction)
+    except FileNotFoundError as e:
+        print(f"Error reading file: {e}")
+        
+        return
     except Exception as e:
-        print(f"Error reading {e}")
+        print(f"Error: {e}")
+        
         return
     
     # print("\nDados de entrada:\n")
@@ -32,28 +36,27 @@ def main(method: int):
     best_solution, best_vars = branch_and_bound(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)
     
     print("Melhor solução encontrada: ")
-    print("Valor da Função Objetivo:", best_solution)
-    print("Valores das variáveis:", best_vars)
+    print(f"Valor da Função Objetivo:   {best_solution}")
+    print(f"Valores das variáveis:      {best_vars}")
 
 def create_model(qtdVars: int, coefficienctsObjectEquation: list[int], coefficienctsRestrictionVar: list[int], coefficientsRightSideRestriction: list[int]):
     model = Model(sense=MAXIMIZE, solver_name=CBC)
     
     # Variáveis binárias
-    x = [model.add_var(var_type=BINARY) for _ in range(qtdVars)]
+    binary_variables    = [model.add_var(var_type=BINARY) for _ in range(qtdVars)]
     
     # Função objetivo
-    model.objective = xsum(coefficienctsObjectEquation[i] * x[i] for i in range(qtdVars))
+    model.objective     = xsum(coefficienctsObjectEquation[i] * binary_variables[i] for i in range(qtdVars))
 
     # Restrições
     for j in range(len(coefficientsRightSideRestriction)):
-        model += xsum(coefficienctsRestrictionVar[j][i] * x[i] for i in range(qtdVars)) <= coefficientsRightSideRestriction[j]
+        model += xsum(coefficienctsRestrictionVar[j][i] * binary_variables[i] for i in range(qtdVars)) <= coefficientsRightSideRestriction[j]
 
     return model
 
-# Algoritmo Branch and Bound
 def branch_and_bound(qtdVars: int, coefficienctsObjectEquation: list[int], coefficienctsRestrictionVar: list[int], coefficientsRightSideRestriction: list[int]):
-    best_solution   = 0  # Melhor solução encontrada até agora
-    best_vars       = None  # Variáveis correspondentes à melhor solução
+    best_solution   = 0     
+    best_vars       = []  # variaveis referentes a melhor solução
     queue           = [create_model(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)]  # Fila de modelos a serem resolvidos
 
     while queue:
@@ -76,19 +79,17 @@ def branch_and_bound(qtdVars: int, coefficienctsObjectEquation: list[int], coeff
 
             if fractional_var:
                 # Ramificar em torno da variável fracionária
-                new_model1  = create_model()
+                new_model1  = create_model(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)
                 new_model1 += fractional_var <= 0
                 queue.append(new_model1)
 
-                new_model2  = create_model()
+                new_model2  = create_model(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)
                 new_model2 += fractional_var >= 1
                 queue.append(new_model2)
 
     return best_solution, best_vars
 
 def read_values_by_console(coefficienctsRestrictionVar, coefficientsRightSideRestriction):
-    # listas para armazenar os coeficientes da função objetivo, coeficientes das restrições (coefficienctsRestrictionVar) e lados direitos das restrições (coefficientsRightSideRestriction)
-    
     qtdVars, qtdRestricts       = map(int, input("Número de variáveis e número de restrições (separados por espaço): ").split())   
     coefficienctsObjectEquation = list(map(float, input("Insira os coeficientes da função objetivo (separados por espaço): ").split()))
 
@@ -102,6 +103,9 @@ def read_values_by_console(coefficienctsRestrictionVar, coefficientsRightSideRes
 
 def read_values_by_file(coefficienctsRestrictionVar, coefficientsRightSideRestriction):
     file_name = input("Digite o nome do arquivo a ser lido: ")
+    
+    if not os.path.exists(file_name):
+        raise FileNotFoundError(f"File not found: {file_name}")
     
     with open(file_name, "r") as file:
         qtdVars, qtdRestricts       = map(int, file.readline().split())

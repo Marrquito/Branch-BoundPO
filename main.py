@@ -48,21 +48,6 @@ class BranchAndBound():
         print(f"Valor da Função Objetivo:   {self.best_solution}")
         print(f"Valores das variáveis:      {self.best_vars}")
 
-    def create_model(self, qtdVars: int, coefficienctsObjectEquation: list[int], coefficienctsRestrictionVar: list[int], coefficientsRightSideRestriction: list[int]):
-        model = Model(sense=MAXIMIZE, solver_name=CBC)
-
-        # variavel continua
-        x               = [model.add_var(var_type=CONTINUOUS, lb=0, ub=1, name="x_" + str(i)) for i in range(qtdVars)]
-        
-        # função objetivo
-        model.objective = xsum(coefficienctsObjectEquation[i] * x[i] for i in range(qtdVars))
-
-        # restrições
-        for j in range(len(coefficientsRightSideRestriction)):
-            model += xsum(coefficienctsRestrictionVar[j][i] * x[i] for i in range(qtdVars)) <= coefficientsRightSideRestriction[j]
-
-        return model
-
     def branch_and_bound(self, qtdVars: int, coefficienctsObjectEquation: list[int], coefficienctsRestrictionVar: list[int], coefficientsRightSideRestriction: list[int]):        
         # fila de modelos a serem resolvidos
         queue = [self.create_model(qtdVars, coefficienctsObjectEquation, coefficienctsRestrictionVar, coefficientsRightSideRestriction)]  
@@ -91,7 +76,22 @@ class BranchAndBound():
                 
                 queue.append(new_model1)
                 queue.append(new_model2)
-    
+
+    def create_model(self, qtdVars: int, coefficienctsObjectEquation: list[int], coefficienctsRestrictionVar: list[int], coefficientsRightSideRestriction: list[int]):
+        model = Model(sense=MAXIMIZE, solver_name=CBC)
+
+        # variavel continua
+        x               = [model.add_var(var_type=CONTINUOUS, lb=0, ub=1, name="x_" + str(i)) for i in range(qtdVars)]
+        
+        # função objetivo
+        model.objective = xsum(coefficienctsObjectEquation[i] * x[i] for i in range(qtdVars))
+
+        # restrições
+        for j in range(len(coefficientsRightSideRestriction)):
+            model += xsum(coefficienctsRestrictionVar[j][i] * x[i] for i in range(qtdVars)) <= coefficientsRightSideRestriction[j]
+
+        return model
+
     # verifica se o modelo resolvido é inviável, limitante, fracionário ou integral
     def bound(self, model): 
         model.optimize()
